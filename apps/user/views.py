@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 import re
 from django.urls import reverse
-from user.models import User
+from user.models import User, Address
 from django.views.generic import View
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired
@@ -117,7 +117,14 @@ class LoginView(View):
 
     def get(self, request):
         # 显示登录页面
-        return render(request, 'login.html')
+        # 是否记住用户名
+        if 'username' in request.COOKIES:
+            username = request.COOKIES.get('username')
+            checked = 'checked'
+        else:
+            username = ''
+            checked = ''
+        return render(request, 'login.html', {'username': username, 'checked': checked})
 
     def post(self, request):
         # 接受数据
@@ -131,8 +138,105 @@ class LoginView(View):
         if user is not None:
             if user.is_active:
                 login(request, user)
-                return redirect(reverse('goods:index'))
+                response = redirect(reverse('goods:index'))  # httpResponseRedirect
+                remember = request.POST.get('remember')
+                if remember == 'on':
+                    response.set_cookie('username', username, max_age=3600 * 7 * 24)
+                else:
+                    response.delete_cookie('username')
+                return response
             else:
                 return render(request, 'login.html', {'errmsg': '用户未激活'})
         else:
             return render(request, 'login.html', {'errmsg': '用户名或密码错误'})
+
+
+# /user/
+class UserInfoView(View):
+    """
+    用户中心页面
+    """
+
+    # 如果用户登录request.user是一个User对象
+    # request.user.is_authenticated()
+
+    # 获取用户的个人信息
+
+    # 获取用户的历史浏览记录
+
+    def get(self, request):
+        '''显示'''
+        return render(request, 'user_center_info.html', {'page': 'user'})
+
+
+# /user/order
+class UserOrderView(View):
+    """
+    用户中心页面
+    """
+
+    # 获取用户订单信息
+    def get(self, request):
+        '''显示'''
+        return render(request, 'user_center_order.html', {'page': 'order'})
+
+
+# /user/address
+class AddressView(View):
+    """
+    用户中心页面
+    """
+
+    # 获取用户默认收货地址
+    #
+    def get(self, request):
+        '''显示'''
+
+        # 获取用户登录对象
+        user = request.user
+        try:
+            address = Address.objects.get(user=user, is_default=True)
+        except Address.DoesNotExist:
+            # 不存在收货地址
+            address = None
+
+        return render(request, 'user_center_site.html', {'page': 'address', 'address': address})
+
+    def post(self, request):
+        '''地址添加'''
+        # 接受数据
+        receiver = request.POST.get('receiver')
+        addr = request.POST.get('addr')
+        zip_code = request.POST.get('zip_code')
+        phone = request.POST.get('phone')
+        # 校验数据
+        if not all([receiver, addr, phone]):
+            return render(request, 'user_center_site.html', {'errmsg': '数据不完整'})
+        if not re.match(r'^1[3|4|5|7|8][0-9]]{9}$', phone):
+            return render(request, 'user_center_site.html', {'errmsg': '手机格式不正确'})
+        # 添加地址
+        # 如果用户没有收货地址,则作为收货地址，如果用户有收货地址则不做为默认收货地址
+
+        # 获取用户登录对象
+        user = request.user
+        try:
+            address = Address.objects.get(user=user, is_default=True)
+        except Address.DoesNotExist:
+            # 不存在收货地址
+            address = None
+
+        if address:
+            is_default = False
+        else:
+            is_default = True
+
+        # 添加地址
+        Address.objects.create(user=user,
+                               receiver=receiver,
+                               addr=addr,
+                               zip_code=zip_code,
+                               phone=phone,
+                               is_default=is_default)
+
+        # 返回答应
+        return redirect(reverse('user:address'))  # get请求
