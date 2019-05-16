@@ -22,3 +22,7 @@ def send_register_active_email(to_email, username, token):
     receiver = [to_email]
     send_mail(subject, message, sender, recipient_list=receiver, html_message=html_message)
     time.sleep(5)
+
+
+def generate_static_index_html():
+    """产生静态页面"""

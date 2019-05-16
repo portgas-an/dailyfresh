@@ -8,8 +8,10 @@ from itsdangerous import SignatureExpired
 from django.conf import settings
 from django.http import HttpResponse
 from celery_tasks.tasks import send_register_active_email
-from django.contrib.auth import authenticate, login
-
+from django.contrib.auth import authenticate, login,logout
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django_redis import get_redis_connection
+from goods.models import GoodsSKU
 
 # Create your views here.
 # /user/register
@@ -137,8 +139,12 @@ class LoginView(View):
         user = authenticate(username=username, password=password)
         if user is not None:
             if user.is_active:
+                # 记录用户登录状态
                 login(request, user)
-                response = redirect(reverse('goods:index'))  # httpResponseRedirect
+                # 获取登录后所要跳转的地址,默认跳转到首页
+                next_url = request.GET.get('next', reverse('goods:index'))
+                # 跳转到next_url
+                response = redirect(next_url)  # httpResponseRedirect
                 remember = request.POST.get('remember')
                 if remember == 'on':
                     response.set_cookie('username', username, max_age=3600 * 7 * 24)
@@ -151,40 +157,67 @@ class LoginView(View):
             return render(request, 'login.html', {'errmsg': '用户名或密码错误'})
 
 
+# /user/logout
+class LogoutView(View):
+    """退出登录"""
+    def get(self, request):
+        # 清楚用户的session信息
+        logout(request)
+
+        # 跳转到首页
+        return redirect(reverse('goods:index'))
+
+
 # /user/
-class UserInfoView(View):
+class UserInfoView(LoginRequiredMixin, View):
     """
-    用户中心页面
+    用户中心页面-信息
     """
-
-    # 如果用户登录request.user是一个User对象
-    # request.user.is_authenticated()
-
-    # 获取用户的个人信息
-
-    # 获取用户的历史浏览记录
-
     def get(self, request):
         '''显示'''
-        return render(request, 'user_center_info.html', {'page': 'user'})
+        # 如果用户未登录->AnonymousUser的一个
+        # 如果用户登录request.user是一个User对象
+        # request.user.is_authenticated()
+
+        # 获取用户的个人信息
+        user = request.user
+        address = Address.objects.get_default_address(user)
+        # 获取用户的历史浏览记录
+        con = get_redis_connection('default')
+
+        history_key = 'history_%d'%user.id
+        # 获取用户最新浏览的5条商品
+        sku_ids = con.lrange(history_key, 0, 4)
+        goods_li = []
+        for id in sku_ids:
+            goods = GoodsSKU.object.filter(id=id)
+            goods_li.append(goods)
+        # 组织上下文
+        context = {'page': 'user',
+                   'address': address,
+                   'goods_li': goods_li}
+
+        # 除了你给模板文件传递变量之外,会把request.user传给模板文件
+        return render(request, 'user_center_info.html', context)
 
 
 # /user/order
-class UserOrderView(View):
+class UserOrderView(LoginRequiredMixin, View):
     """
-    用户中心页面
+    用户中心页面-订单
     """
 
     # 获取用户订单信息
+    # @method_decorator(login_required(login_url='/user/login/', redirect_field_name='next'))
     def get(self, request):
         '''显示'''
         return render(request, 'user_center_order.html', {'page': 'order'})
 
 
 # /user/address
-class AddressView(View):
+class AddressView(LoginRequiredMixin, View):
     """
-    用户中心页面
+    用户中心页面-地址
     """
 
     # 获取用户默认收货地址
@@ -194,11 +227,12 @@ class AddressView(View):
 
         # 获取用户登录对象
         user = request.user
-        try:
-            address = Address.objects.get(user=user, is_default=True)
-        except Address.DoesNotExist:
-            # 不存在收货地址
-            address = None
+        # try:
+        #     address = Address.objects.get(user=user, is_default=True)
+        # except Address.DoesNotExist:
+        #     # 不存在收货地址
+        #     address = None
+        address = Address.objects.get_default_address(user)
 
         return render(request, 'user_center_site.html', {'page': 'address', 'address': address})
 
@@ -212,18 +246,15 @@ class AddressView(View):
         # 校验数据
         if not all([receiver, addr, phone]):
             return render(request, 'user_center_site.html', {'errmsg': '数据不完整'})
-        if not re.match(r'^1[3|4|5|7|8][0-9]]{9}$', phone):
+        if not re.match(r'^1[34578]\d{9}$', phone):
             return render(request, 'user_center_site.html', {'errmsg': '手机格式不正确'})
         # 添加地址
         # 如果用户没有收货地址,则作为收货地址，如果用户有收货地址则不做为默认收货地址
 
         # 获取用户登录对象
         user = request.user
-        try:
-            address = Address.objects.get(user=user, is_default=True)
-        except Address.DoesNotExist:
-            # 不存在收货地址
-            address = None
+
+        address = Address.objects.get_default_address(user)
 
         if address:
             is_default = False
