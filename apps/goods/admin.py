@@ -1,9 +1,10 @@
 from django.contrib import admin
-from goods.models import GoodsType, IndexPromotionBanner
+from goods.models import *
+
+
 # Register your models here.
 
-
-class IndexPromotionBannerAdmin(admin.ModelAdmin):
+class BaseModelAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         """更新表中的数据时"""
         super().save_model(request, obj, form, change)
@@ -20,5 +21,23 @@ class IndexPromotionBannerAdmin(admin.ModelAdmin):
         generate_static_index_html.delay()
 
 
-admin.site.register(GoodsType)
+class IndexPromotionBannerAdmin(BaseModelAdmin):
+    pass
+
+
+class GoodsTypeAdmin(BaseModelAdmin):
+    pass
+
+
+class IndexTypeGoodsBannerAdmin(BaseModelAdmin):
+    pass
+
+
+class IndexGoodsBannerAdmin(BaseModelAdmin):
+    pass
+
+
+admin.site.register(GoodsType, GoodsTypeAdmin)
+admin.site.register(IndexGoodsBanner, IndexGoodsBannerAdmin)
+admin.site.register(IndexTypeGoodsBanner, IndexTypeGoodsBannerAdmin)
 admin.site.register(IndexPromotionBanner, IndexPromotionBannerAdmin)
