@@ -164,3 +164,7 @@ LOGIN_URL = '/user/login'
 
 # 设置django文件存储类
 DEFAULT_FILE_STORAGE = 'utils.fdfs.storage.FDFSStorage'
+
+FDFS_CLIENT_CONF = '/etc/fdfs/client.conf'
+
+FDFS_URL = 'http://file.ace.com/'

@@ -1,9 +1,18 @@
 from django.core.files.storage import Storage
 from fdfs_client.client import Fdfs_client, get_tracker_conf
+from django.conf import settings
 
 
 class FDFSStorage(Storage):
     """文件存储类"""
+
+    def __init__(self, client_conf=None, base_url=None):
+        if client_conf is None:
+            client_conf = settings.FDFS_CLIENT_CONF
+        self.client_conf = client_conf
+        if base_url is None:
+            base_url = settings.FDFS_URL
+        self.base_url = base_url
 
     def _open(self, name, mode='rb'):
         pass
@@ -13,7 +22,7 @@ class FDFSStorage(Storage):
         # content包含文件上传内容file对象
 
         # 创建client对象
-        client = Fdfs_client(get_tracker_conf('/etc/fdfs/client.conf'))
+        client = Fdfs_client(get_tracker_conf(self.client_conf))
 
         # 上传文件到系统中
         res = client.upload_by_buffer(content.read())
@@ -42,4 +51,4 @@ class FDFSStorage(Storage):
 
     def url(self, name):
         '''返回django文件路径'''
-        return "file.ace.com"+name
+        return self.base_url + name
