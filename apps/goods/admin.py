@@ -4,6 +4,7 @@ from django.core.cache import cache
 
 # Register your models here.
 
+
 class BaseModelAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         """更新表中的数据时"""
@@ -25,6 +26,7 @@ class BaseModelAdmin(admin.ModelAdmin):
 
         # 清楚首页缓存数据
         cache.delete('index_page_data')
+
 
 class IndexPromotionBannerAdmin(BaseModelAdmin):
     pass
@@ -48,3 +50,4 @@ admin.site.register(IndexTypeGoodsBanner, IndexTypeGoodsBannerAdmin)
 admin.site.register(IndexPromotionBanner, IndexPromotionBannerAdmin)
 admin.site.register(GoodsSKU)
 admin.site.register(Goods)
+admin.site.register(GoodsImage)

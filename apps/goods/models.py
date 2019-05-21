@@ -74,6 +74,9 @@ class GoodsImage(BaseModel):
         verbose_name = '商品图片'
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.sku.name
+
 
 class IndexGoodsBanner(BaseModel):
     '''首页轮播商品展示模型类'''
@@ -85,6 +88,9 @@ class IndexGoodsBanner(BaseModel):
         db_table = 'df_index_banner'
         verbose_name = '首页轮播商品'
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return "轮播图_%d" % self.index
 
 
 class IndexTypeGoodsBanner(BaseModel):

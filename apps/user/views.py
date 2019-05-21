@@ -185,17 +185,16 @@ class UserInfoView(LoginRequiredMixin, View):
         # 获取用户的历史浏览记录
         con = get_redis_connection('default')
 
-        history_key = 'history_%d'%user.id
+        history_key = 'history_%d' % user.id
         # 获取用户最新浏览的5条商品
         sku_ids = con.lrange(history_key, 0, 4)
         goods_li = []
         for id in sku_ids:
-            goods = GoodsSKU.object.filter(id=id)
-            goods_li.append(goods)
+            id = id.decode('utf-8')
+            goods = GoodsSKU.objects.filter(id=id)
+            goods_li.extend(goods)
         # 组织上下文
-        context = {'page': 'user',
-                   'address': address,
-                   'goods_li': goods_li}
+        context = {'page': 'user', 'address': address, 'goods_li': goods_li}
 
         # 除了你给模板文件传递变量之外,会把request.user传给模板文件
         return render(request, 'user_center_info.html', context)
