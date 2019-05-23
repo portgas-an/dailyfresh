@@ -5,7 +5,7 @@ from django_redis import get_redis_connection
 from django.core.cache import cache
 from order.models import OrderGoods
 from django.core.paginator import Paginator
-
+from jieba.analyse import ChineseAnalyzer
 
 class IndexView(View):
     """首页"""
@@ -129,8 +129,19 @@ class ListView(View):
             page = 1
         if page > pageinator.num_pages:
             page = 1
-        # 获取
+        # 获取分页
         skus_page = pageinator.page(page)
+        # 页码控制,小于5显示所有，大于五显示全部
+        num_pages = pageinator.num_pages
+        if num_pages < 5:
+            pages = range(1, num_pages+1)
+        elif page <= 3:
+            pages = range(1, 6)
+        elif num_pages - page <=2:
+            pages = range(num_pages-4, num_pages+1)
+        else:
+            pages = range(page-2,page+3)
+
         # 获取新品信息
         new_skus = GoodsSKU.objects.filter(type=type).order_by('create_time')[:2]
         # 获取用户购物车中商品的数目
@@ -145,6 +156,7 @@ class ListView(View):
         # 组织模板上下文
         context = {'type': type,
                    'types': types,
+                   'pages': pages,
                    'skus_page': skus_page,
                    'new_skus': new_skus,
                    'cart_count': cart_count,
