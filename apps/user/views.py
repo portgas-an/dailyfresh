@@ -8,10 +8,11 @@ from itsdangerous import SignatureExpired
 from django.conf import settings
 from django.http import HttpResponse
 from celery_tasks.tasks import send_register_active_email
-from django.contrib.auth import authenticate, login,logout
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django_redis import get_redis_connection
 from goods.models import GoodsSKU
+
 
 # Create your views here.
 # /user/register
