@@ -67,7 +67,7 @@ class CartInfoView(LoginRequiredMixin, View):
             # 动态给sku对象增加一个小计属性
             sku.amount = amount
             # 动态给sku对象增加购物车数量
-            sku.count = count
+            sku.count = int(count)
             skus.append(sku)
             # 累加计算商品的总数目和总价格
             total_count += int(count)
@@ -143,7 +143,7 @@ class CartDeleteView(View):
         conn.hdel(cart_key, sku_id)
         # 计算用户购物车中商品的总件数
         total_count = 0
-        vals = conn.hvlas(cart_key)
+        vals = conn.hvals(cart_key)
         for val in vals:
             total_count += int(val)
         # 返回应答
