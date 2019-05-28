@@ -1,6 +1,23 @@
 from django.core.files.storage import Storage
 from fdfs_client.client import Fdfs_client, get_tracker_conf
 from django.conf import settings
+import os
+import re
+
+
+def valid_ip(ip):
+    if ("255" in ip) or (ip == "127.0.0.1") or (ip == "0.0.0.0"):
+        return False
+    else:
+        return True
+
+
+def get_ip(valid_ip):
+    ipss = ''.join(os.popen("ifconfig").readlines())
+    match = "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+    ips = re.findall(match, ipss, flags=re.M)
+    ip = filter(valid_ip, ips)
+    return "http://"+''.join(ip)+"/"
 
 
 class FDFSStorage(Storage):
@@ -11,7 +28,7 @@ class FDFSStorage(Storage):
             client_conf = settings.FDFS_CLIENT_CONF
         self.client_conf = client_conf
         if base_url is None:
-            base_url = settings.FDFS_URL
+            base_url = get_ip(valid_ip)
         self.base_url = base_url
 
     def _open(self, name, mode='rb'):
@@ -52,3 +69,4 @@ class FDFSStorage(Storage):
     def url(self, name):
         '''返回django文件路径'''
         return self.base_url + name
+

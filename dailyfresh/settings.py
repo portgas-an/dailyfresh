@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 SECRET_KEY = '4$jj$wplpbu=rntzx9%w^2_$!%&*^kon*%)d&c!%+fkq9d+6bp'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*', ]
 
@@ -128,6 +128,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+# 指定收集静态文件的路径
+STATIC_ROOT = '/home/ace/PycharmProjects/static'
 
 # 富文本编辑器
 TINYMCE_DEFAULT_CONFIG = {

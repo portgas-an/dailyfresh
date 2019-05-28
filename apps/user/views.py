@@ -12,9 +12,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django_redis import get_redis_connection
 from goods.models import GoodsSKU
+from order.models import OrderInfo, OrderGoods
+from django.core.paginator import Paginator
 
 
-# Create your views here.
 # /user/register
 def register(request):
     """
@@ -209,9 +210,52 @@ class UserOrderView(LoginRequiredMixin, View):
 
     # 获取用户订单信息
     # @method_decorator(login_required(login_url='/user/login/', redirect_field_name='next'))
-    def get(self, request):
+    def get(self, request, page):
         '''显示'''
-        return render(request, 'user_center_order.html', {'page': 'order'})
+        user = request.user
+        orders = OrderInfo.objects.filter(user=user).order_by('-create_time')
+        # 遍历获取订单商品信息
+        for order in orders:
+            # 根据订单信息查出购买的商品信息
+            order_skus = OrderGoods.objects.filter(order_id=order.order_id)
+            # 便利order_sku计算商品小计
+            for order_sku in order_skus:
+                # 计算小计
+                amount = order_sku.count * order_sku.price
+                # 动态给order_sku增加属性,保存订单商品小计
+                order_sku.amount = amount
+            # 动态给order生成状态
+            order.status_name = OrderInfo.ORDER_STATUS[order.order_status]
+            # 动态给order增加属性,保存订单商品信息
+            order.order_skus = order_skus
+            # 分页
+            paginator = Paginator(orders, 1)
+            # 处理页面
+            try:
+                page = int(page)
+            except Exception as e:
+                page = 1
+            if page > paginator.num_pages:
+                page = 1
+            # 获取分页
+            order_page = paginator.page(page)
+            # 页码控制,小于5显示所有，大于五显示全部
+            num_pages = paginator.num_pages
+            if num_pages < 5:
+                pages = range(1, num_pages + 1)
+            elif page <= 3:
+                pages = range(1, 6)
+            elif num_pages - page <= 2:
+                pages = range(num_pages - 4, num_pages + 1)
+            else:
+                pages = range(page - 2, page + 3)
+
+            # 组织上下午
+            context = {'order_page': order_page,
+                       'pages': pages,
+                       'page': 'order'
+                       }
+        return render(request, 'user_center_order.html', context)
 
 
 # /user/address

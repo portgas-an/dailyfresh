@@ -114,7 +114,7 @@ class CartUpdateView(View):
         conn.hset(cart_key, sku_id, count)
         # 计算用户购物车中商品的总件数
         total_count = 0
-        vals = conn.hvlas(cart_key)
+        vals = conn.hvals(cart_key)
         for val in vals:
             total_count += int(val)
         # 返回应答
